@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTO GarageOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* cosmos purple · metallic violet · chrome */
+    --bg:#0b0810; --panel:#16111d; --panel-2:#1f1729; --inset:#0d0a13;
+    --accent:#8a5cd0; --accent-hi:#a87ce8; --accent-soft:#2c1f3f;
+    --chrome:#c8c6d4; --chrome-dim:#8b8898;
+    --text:#ece9f2; --muted:#8b86a0; --border:#2a2238; --border-hi:#42355c;
+    --ok:#5aa66f; --warn:#cf9a2f; --bad:#c0445c; --link:#a87ce8;
+    --metal:#cdbce8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Oswald',system-ui,sans-serif;background:var(--bg);
+    background-image:
+      radial-gradient(120% 80% at 50% -10%,rgba(138,92,208,.10),transparent 60%),
+      repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(138,92,208,.02) 47px,rgba(138,92,208,.02) 48px),
+      repeating-linear-gradient(90deg,transparent,transparent 47px,rgba(138,92,208,.02) 47px,rgba(138,92,208,.02) 48px);
+    color:var(--text);padding:12px;display:flex;flex-direction:column;gap:16px;overflow-x:hidden;min-height:100vh;font-weight:400}
+
+  /* ---- chrome-edged badge header ---- */
+  .brochure-header{position:relative;background:
+      linear-gradient(160deg,#241a33 0%,#15101f 55%,#0c0913 100%);
+    border:1px solid var(--border-hi);border-radius:6px;padding:24px 22px;text-align:center;
+    box-shadow:inset 0 1px 0 rgba(168,124,232,.18),0 6px 22px rgba(0,0,0,.6)}
+  .brochure-header::after{content:"";position:absolute;inset:0;border-radius:6px;pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(205,188,232,.08)}
+  .brochure-header h1{font-family:'Rajdhani',sans-serif;font-size:2.2rem;letter-spacing:7px;
+    background:linear-gradient(180deg,#e9e2f6 0%,#a87ce8 55%,#6b46a8 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-transform:uppercase;font-weight:700;line-height:1}
+  .brochure-header p{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent-hi);text-transform:uppercase;
+    letter-spacing:3px;margin-top:8px}
+
+  .hero{background:var(--inset);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center}
+  .spec-badge{display:inline-block;background:linear-gradient(180deg,#a87ce8,#7a52c0);color:#0c0913;
+    font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.7rem;padding:4px 11px;border-radius:3px;
+    text-transform:uppercase;margin-bottom:8px;letter-spacing:2px}
+  .odo{margin-top:6px}
+  .odo label{display:block;font-family:'JetBrains Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:5px}
+  .odo input{width:100%;text-align:center;font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;letter-spacing:2px;
+    background:#0c0913;border:1px solid var(--border-hi);color:var(--accent-hi);border-radius:4px;padding:10px;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.6)}
+  .odo input:focus{outline:none;border-color:var(--accent)}
+
+  .nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .nav-btn{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 8px;border-radius:4px;
+    font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.86rem;text-transform:uppercase;cursor:pointer;text-align:center;
+    transition:all .12s;letter-spacing:1.5px;position:relative}
+  .nav-btn:hover{border-color:var(--border-hi);background:var(--panel-2)}
+  .nav-btn.active{border-color:var(--accent);background:var(--panel-2);color:var(--accent-hi);
+    box-shadow:inset 0 0 12px rgba(138,92,208,.15)}
+  .nav-btn.active::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;
+    background:linear-gradient(180deg,#a87ce8,#6b46a8)}
+  .nav-btn .pip{display:inline-block;min-width:16px;font-family:'JetBrains Mono',monospace;font-size:.68rem;margin-left:3px;color:var(--bad);font-weight:700}
+
+  .content{flex:1}
+  .panel{display:none;background:var(--panel);padding:20px;border-radius:6px;border:1px solid var(--border);
+    box-shadow:0 4px 18px rgba(0,0,0,.4)}
+  .panel.active{display:block;animation:fadein .2s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:16px}
+  h3{font-family:'Rajdhani',sans-serif;font-size:1.15rem;color:var(--metal);text-transform:uppercase;
+    letter-spacing:3px;font-weight:700}
+  h4{font-family:'Rajdhani',sans-serif;font-size:.92rem;color:var(--accent-hi);text-transform:uppercase;letter-spacing:2px;margin:18px 0 9px;font-weight:600}
+  .sub{font-size:.82rem;color:var(--muted);margin-bottom:13px;line-height:1.55}
+  a{color:var(--link)}
+
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--accent-hi);font-family:'JetBrains Mono',monospace;text-transform:uppercase;font-size:.64rem;letter-spacing:1px;font-weight:500}
+  td{font-family:'Oswald',sans-serif}
+  td .x{color:var(--muted);cursor:pointer;font-weight:700;padding:2px 7px;border-radius:3px;font-family:monospace}
+  td .x:hover{color:var(--bad);background:var(--inset)}
+  .num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;text-align:right}
+  .empty{color:var(--muted);font-size:.85rem;padding:18px 4px;text-align:center;font-style:italic}
+
+  .form{display:grid;gap:9px;margin-bottom:14px;background:var(--inset);padding:14px;border-radius:4px;border:1px solid var(--border);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
+  .row{display:grid;gap:9px}
+  @media(min-width:420px){.row.c2{grid-template-columns:1fr 1fr}.row.c3{grid-template-columns:1fr 1fr 1fr}}
+  input,select,textarea{padding:10px;background:#0c0913;border:1px solid var(--border);color:var(--text);border-radius:4px;
+    font-size:.9rem;font-family:'Oswald',sans-serif;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft)}
+  label.fld{font-family:'JetBrains Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;display:block}
+
+  .btn{padding:11px 17px;background:linear-gradient(180deg,#9a6ce0,#7a52c0);color:#fff;border:none;border-radius:4px;
+    font-family:'Rajdhani',sans-serif;font-weight:700;text-transform:uppercase;cursor:pointer;letter-spacing:1.5px;font-size:.86rem;
+    transition:all .12s;box-shadow:0 2px 0 #4f3580}
+  .btn:hover{background:linear-gradient(180deg,#a87ce8,#8a5cd0)}
+  .btn:active{transform:translateY(2px);box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--accent-hi);border:1px solid var(--accent);box-shadow:none}
+  .btn.ghost:hover{background:var(--accent-soft);box-shadow:none}
+  .btn.sm{padding:7px 12px;font-size:.74rem;letter-spacing:1px}
+
+  .cards{display:grid;gap:10px}
+  .card{background:var(--inset);border:1px solid var(--border);border-radius:4px;padding:13px;border-left:3px solid var(--border-hi);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+  .card.ok{border-left-color:var(--ok)} .card.warn{border-left-color:var(--warn)} .card.bad{border-left-color:var(--bad)}
+  .card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .card .name{font-weight:600;font-size:.96rem;letter-spacing:.3px}
+  .card .status{font-family:'JetBrains Mono',monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+  .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
+  .card .meta{font-size:.8rem;color:var(--muted);margin-top:5px;font-family:'JetBrains Mono',monospace}
+  .bar{height:6px;background:#0c0913;border-radius:3px;margin-top:9px;overflow:hidden;border:1px solid rgba(0,0,0,.5)}
+  .bar > i{display:block;height:100%}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:15px}
+  .stat{background:linear-gradient(180deg,var(--inset),#0c0913);border:1px solid var(--border-hi);border-radius:4px;padding:13px 8px;text-align:center;position:relative;overflow:hidden}
+  .stat::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#6b46a8,#a87ce8);opacity:.6}
+  .stat .v{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--accent-hi);font-variant-numeric:tabular-nums}
+  .stat .l{font-family:'JetBrains Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:3px}
+
+  .spec-list{display:grid;gap:7px}
+  .pdf-list{display:grid;gap:5px}
+  .pdf-list a{display:flex;justify-content:space-between;align-items:center;background:var(--inset);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-size:.84rem;text-decoration:none;color:var(--text);font-weight:500}
+  .pdf-list a:hover{border-color:var(--accent);color:var(--accent-hi);background:var(--panel-2)}
+  .pdf-list a .tag{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;border:1px solid var(--border);padding:2px 6px;border-radius:3px}
+  .spec-row{display:flex;justify-content:space-between;gap:10px;background:var(--inset);border:1px solid var(--border);border-radius:4px;padding:11px 13px;font-size:.86rem}
+  .spec-row .k{color:var(--muted);font-family:'Oswald',sans-serif} .spec-row .v{font-weight:600;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)}
+  .warnbox{background:linear-gradient(180deg,#2a1420,#1f0f18);border:1px solid var(--bad);border-left:4px solid var(--bad);border-radius:4px;padding:11px 13px;font-size:.82rem;line-height:1.55;margin:11px 0}
+  .warnbox b{color:#e07a90;font-family:'Rajdhani',sans-serif;letter-spacing:1px}
+  .tipbox{background:linear-gradient(180deg,#1a1426,#130f1c);border:1px solid var(--border-hi);border-left:4px solid var(--accent);border-radius:4px;padding:11px 13px;font-size:.82rem;line-height:1.55;margin:11px 0}
+  .tipbox b{color:var(--accent-hi);font-family:'Rajdhani',sans-serif;letter-spacing:1px}
+
+  .chat-box{height:300px;background:var(--inset);border:1px solid var(--border);border-radius:4px;padding:13px;overflow-y:auto;margin-bottom:10px;font-size:.88rem;line-height:1.55;box-shadow:inset 0 1px 4px rgba(0,0,0,.4)}
+  .msg{margin-bottom:13px}
+  .msg .who{font-family:'JetBrains Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px}
+  .msg.user .bubble{background:var(--panel-2);padding:10px 12px;border-radius:4px;border-left:2px solid var(--border-hi)}
+  .msg.ai .bubble{background:#0c0913;border-left:2px solid var(--accent);padding:11px 12px;border-radius:4px}
+  .msg.ai .bubble b{color:var(--accent-hi)}
+  .srcbar{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border-hi)}
+  .srcbar .lbl{font-family:'JetBrains Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+  .src{display:inline-block;background:var(--panel-2);border:1px solid var(--border-hi);border-radius:3px;padding:4px 9px;margin:0 5px 5px 0;font-size:.74rem;color:var(--accent-hi);font-family:'JetBrains Mono',monospace}
+  .chips{margin-bottom:11px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--inset);border:1px solid var(--border);border-radius:14px;padding:6px 12px;font-size:.74rem;cursor:pointer;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+  .chip:hover{border-color:var(--accent);color:var(--accent-hi)}
+  .input-group{display:flex;gap:8px}
+  .input-group input{flex:1}
+  .disclaimer{font-size:.68rem;color:var(--muted);margin-top:9px;line-height:1.45;text-align:center;font-family:'JetBrains Mono',monospace}
+
+  .foot{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--muted);text-align:center;padding:8px 0 2px;line-height:1.7;letter-spacing:.5px}
+  .foot a{color:var(--accent-hi);cursor:pointer}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  @media(min-width:760px){
+    body{display:grid;grid-template-columns:300px 1fr;align-items:start;padding:16px;gap:16px}
+    .left{display:flex;flex-direction:column;gap:16px;position:sticky;top:16px}
+    .nav-grid{grid-template-columns:1fr 1fr}
+    .content{height:calc(100vh - 32px);overflow-y:auto}
+    .chat-box{height:44vh}
+  }
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="brochure-header"><h1>Pontiac GTO</h1><p>2004 &middot; 5.7L LS1 &middot; RWD</p></div>
+  <div class="hero">
+    <span class="spec-badge">Cosmos Purple Metallic</span>
+    <div class="odo"><label for="odo">Current Odometer</label>
+      <input id="odo" type="text" inputmode="numeric" placeholder="68,500"></div>
+  </div>
+  <div class="nav-grid">
+    <div class="nav-btn active" data-tab="dash">Dashboard</div>
+    <div class="nav-btn" data-tab="ai">Diagnose</div>
+    <div class="nav-btn" data-tab="log">Service Log</div>
+    <div class="nav-btn" data-tab="intervals">Intervals</div>
+    <div class="nav-btn" data-tab="scans">Scans</div>
+    <div class="nav-btn" data-tab="logs">Data Logs</div>
+    <div class="nav-btn" data-tab="mods">Build Log</div>
+    <div class="nav-btn" data-tab="ref">Reference</div>
+  </div>
+</div>
+<div class="content">
+  <div id="dash" class="panel active">
+    <div class="panel-head"><h3>Status Dashboard</h3></div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="s-spend">$0</div><div class="l">Total Spent</div></div>
+      <div class="stat"><div class="v" id="s-records">0</div><div class="l">Service Records</div></div>
+      <div class="stat"><div class="v" id="s-due">0</div><div class="l">Due / Overdue</div></div>
+    </div>
+    <p class="sub">Maintenance health vs. your current odometer. Set intervals under Intervals; log work under Service Log.</p>
+    <div class="cards" id="dash-cards"></div>
+  </div>
+  <div id="ai" class="panel">
+    <div class="panel-head"><h3>LS1 Diagnostics</h3></div>
+    <p class="sub">Describe a symptom. You get triage reasoning plus the GTO/LS1 systems to check &mdash; grounded in known specs, and it tells you which value to confirm in a service manual rather than inventing torque numbers.</p>
+    <div class="chips" id="chips"></div>
+    <div class="chat-box" id="chatBox">
+      <div class="msg ai"><div class="who">GarageOS</div>
+        <div class="bubble">Describe a symptom or ask a procedure question for the 2004 GTO (5.7L LS1). I'll give structured triage and point you to the right system.</div></div>
+    </div>
+    <div class="input-group">
+      <input id="issueInput" type="text" placeholder="e.g. Clunk from rear over bumps">
+      <button class="btn" id="scan">Scan</button>
+    </div>
+    <p class="disclaimer">AI guidance is for triage only. Confirm torque values and procedures against an LS1 / GTO service manual before wrenching. Specs are well-established figures, not a scanned factory manual.</p>
+  </div>
+  <div id="log" class="panel">
+    <div class="panel-head"><h3>Maintenance History</h3></div>
+    <div class="form">
+      <div class="row c2">
+        <div><label class="fld">Date</label><input id="l-date" type="date"></div>
+        <div><label class="fld">Mileage</label><input id="l-miles" type="text" inputmode="numeric" placeholder="68,500"></div>
+      </div>
+      <div><label class="fld">Service performed</label><input id="l-item" type="text" placeholder="e.g. Oil &amp; filter, diff fluid, plugs"></div>
+      <div class="row c2">
+        <div><label class="fld">Cost (USD)</label><input id="l-cost" type="text" inputmode="decimal" placeholder="79.50"></div>
+        <div><label class="fld">Shop / notes</label><input id="l-notes" type="text" placeholder="Optional"></div>
+      </div>
+      <button class="btn" id="l-add">+ Add service record</button>
+    </div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Date</th><th>Service</th><th class="num">Miles</th><th class="num">Cost</th><th></th></tr></thead>
+      <tbody id="log-body"></tbody></table></div>
+  </div>
+  <div id="intervals" class="panel">
+    <div class="panel-head"><h3>Service Intervals</h3>
+      <button class="btn ghost sm" id="i-seed">Load GTO defaults</button></div>
+    <p class="sub">Each interval tracks miles-since-last-service from your odometer and the most recent matching log entry.</p>
+    <div class="form">
+      <div class="row c2">
+        <div><label class="fld">Component / fluid</label><input id="i-name" type="text" placeholder="Engine oil"></div>
+        <div><label class="fld">Every (miles)</label><input id="i-every" type="text" inputmode="numeric" placeholder="3000"></div>
+      </div>
+      <div><label class="fld">Last done at (miles) &mdash; optional, auto-detected from log if blank</label>
+        <input id="i-last" type="text" inputmode="numeric" placeholder="65,000"></div>
+      <button class="btn" id="i-add">+ Add interval</button>
+    </div>
+    <div class="cards" id="int-cards"></div>
+  </div>
+  <div id="scans" class="panel">
+    <div class="panel-head"><h3>Scanner Reports</h3></div>
+    <p class="sub">Upload your OBD scanner's report (PDF or text). It pulls out the trouble codes, de-duplicates them, and logs the scan so you can track whether codes return after clearing. Works with most scanner exports &mdash; if yours parses oddly, that's fixable.</p>
+    <div class="form" style="text-align:center">
+      <input type="file" id="scanFile" accept="application/pdf,text/plain,.txt,.csv" style="display:none">
+      <button class="btn" id="scanPick">+ Upload scan (PDF or text)</button>
+      <div id="scanStatus" style="font-size:.78rem;color:var(--muted);margin-top:4px"></div>
+    </div>
+    <div id="scanResult"></div>
+    <h4 id="scanHistHead" style="display:none">Scan History</h4>
+    <div class="cards" id="scan-history"></div>
+  </div>
+  <div id="logs" class="panel">
+    <div class="panel-head"><h3>HP Tuners Data Logs</h3></div>
+    <p class="sub">Export your VCM Scanner log to <b>CSV</b> (File &rarr; Export, or the CSV export option), then upload it here. The app charts your key channels over the pull and flags the LS1 things that matter &mdash; knock retard, coolant temp, and air/fuel. It can't read raw <b>.hpl</b> files (that format is closed), so export to CSV first.</p>
+    <div class="form" style="text-align:center">
+      <input type="file" id="logFile" accept="text/csv,.csv,text/plain,.txt" style="display:none">
+      <button class="btn" id="logPick">+ Upload VCM Scanner CSV</button>
+      <div id="logStatus" style="font-size:.78rem;color:var(--muted);margin-top:4px"></div>
+    </div>
+    <div id="logResult"></div>
+  </div>
+  <div id="mods" class="panel">
+    <div class="panel-head"><h3>Build Log</h3>
+      <button class="btn ghost sm" id="m-seed">Load mod menu</button></div>
+    <p class="sub">Track mods, part numbers, and cost. Mod spend feeds the dashboard total. "Load mod menu" adds common LS1 GTO upgrades as un-dated planning entries.</p>
+    <div class="form">
+      <div><label class="fld">Modification</label><input id="m-name" type="text" placeholder="e.g. LS6 intake, long-tube headers, lid"></div>
+      <div class="row c3">
+        <div><label class="fld">Date</label><input id="m-date" type="date"></div>
+        <div><label class="fld">Part #</label><input id="m-part" type="text" placeholder="Optional"></div>
+        <div><label class="fld">Cost</label><input id="m-cost" type="text" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <button class="btn" id="m-add">+ Add to build</button>
+    </div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Date</th><th>Mod</th><th>Part #</th><th class="num">Cost</th><th></th></tr></thead>
+      <tbody id="mods-body"></tbody></table></div>
+  </div>
+  <div id="ref" class="panel">
+    <div class="panel-head"><h3>GTO Reference</h3></div>
+    <p class="sub">Well-established 2004 GTO / LS1 specs and known quirks. These are solid general figures &mdash; confirm critical torque/clearance values against the GTO service manual before relying on them.</p>
+    <div class="tipbox"><b>Free Service Manual</b><br>The full 2004&ndash;2006 GTO factory service manual (torque specs, repairs, the works) is hosted free by Mark Quitter Racing. <a href="https://markquitterracing.com/freeservicemanual/" target="_blank" rel="noopener">Download it here ↗</a> &mdash; and consider tossing him a donation, since he hosts it for the community.</div>
+    <h4>Manual Sections (62)</h4>
+    <p class="sub">Every section in the factory manual. Search to find the right one, then grab the manual from the link above to read it. The Diagnose tab also names the exact section for each symptom.</p>
+    <input class="pdf-search" id="man-q" type="text" placeholder="Filter sections… e.g. rear suspension, cooling, wiring, brakes" style="margin-bottom:10px">
+    <div class="pdf-list" id="man-list"></div>
+    <h4>Hard Specs</h4>
+    <div class="spec-list" id="spec-list"></div>
+    <h4>Fluid Capacities</h4>
+    <div class="spec-list" id="fluid-list"></div>
+    <h4>Known Quirks &amp; Watch-Items</h4>
+    <div id="quirk-list"></div>
+    <h4>Common Upgrades</h4>
+    <div class="spec-list" id="parts-list"></div>
+    <h4>DIY Guides &amp; Specs</h4>
+    <p class="sub">Direct links to Mark Quitter Racing's how-to pages. Filter to find one fast.</p>
+    <input class="pdf-search" id="res-q" type="text" placeholder="Filter guides… e.g. brakes, plugs, cooling, radio" style="margin-bottom:10px">
+    <div class="pdf-list" id="res-list"></div>
+    <div class="foot" style="text-align:left;padding-top:12px">All DIY links &amp; the service manual are courtesy of markquitterracing.com.</div>
+  </div>
+  <div class="foot">
+    Data saved on this device only. &nbsp;|&nbsp;
+    <a id="export">Export backup</a> &middot; <a id="import">Import</a> &middot; <a id="wipe">Reset all</a>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const K='gtogarageos.v1';
+const blank={odo:'', log:[], intervals:[], mods:[], scans:[]};
+let db=load();
+
+/* ---------- baked-in GTO / LS1 knowledge ---------- */
+const SPECS=[
+  ['Engine','5.7L LS1 V8 (Gen III)'],
+  ['Power','350 hp / 365 lb-ft'],
+  ['Trans (auto)','4L60-E 4-speed'],
+  ['Trans (manual)','T56 6-speed'],
+  ['Platform','Holden Monaro (VZ/VY)'],
+  ['Rear axle','IRS, 3.46 final drive'],
+  ['Firing order','1-8-7-2-6-5-4-3'],
+  ['Spark plug gap','~0.040 in (verify)'],
+  ['0-60','~5.3 sec']
+];
+const FLUIDS=[
+  ['Engine oil','5W-30, ~6.5 qt w/ filter'],
+  ['Coolant','DEX-COOL, ~14 qt'],
+  ['Trans (4L60E)','DEXRON-III/VI, ~? — verify'],
+  ['Trans (T56)','GM Synchromesh / specified'],
+  ['Rear diff','75W-90 synthetic'],
+  ['Brake fluid','DOT 3'],
+  ['Fuel','91+ octane recommended']
+];
+const QUIRKS=[
+  ['Fuel tank slosh / clunk','2004s are known for a fuel tank that shifts and "clunks" on accel/decel; revised straps & a tank pad were the common fix.'],
+  ['Rear-end / IRS clunk','Clunk over bumps or on throttle is often the IRS — cradle bushings, half-shaft splines, or diff mount. Inspect before assuming the diff.'],
+  ['Small fuel tank','~18 gal but real-world range is short; the 2004 also had a smaller tank than 05-06.'],
+  ['Tucked exhaust / heat','Stock exhaust exits are tucked; cat-back and headers are the most common first mods.'],
+  ['Battery under hood','Battery is under the hood (US-market 2004 GTO). Some Holden Monaro cousins ran it in the trunk, which causes confusion — but on the US GTO it\'s up front.'],
+  ['Clutch feel (T56)','Stock clutch is light; aggressive launches wear it. Many upgrade when adding power.']
+];
+const PARTS=[
+  ['Intake','LS6 intake manifold swap / CAI'],
+  ['Headers','Long-tube headers + high-flow cats'],
+  ['Exhaust','Cat-back (axle-back tucked stock)'],
+  ['Tune','Handheld tuner / dyno tune'],
+  ['Lid','Ported throttle body + lid'],
+  ['Suspension','Lowering springs / sway bars'],
+  ['Cooling','Aftermarket radiator / fans'],
+  ['Driveline','Upgraded clutch (T56) for power']
+];
+
+// Full factory manual section index (62 sections, from the 2004-06 GTO service manual).
+// The manual itself is downloaded from Mark Quitter Racing; this index names every section
+// so the app can tell you exactly which one to open for a given symptom.
+const MANSECTIONS=[
+  ['2005 DISC BRAKES','chassis'],
+  ['2005 DRIVESHAFT','driveline'],
+  ['2005 ELECTRICAL COMPONENT LOCATOR','electrical'],
+  ['2005 ENGINE COOLING','engine'],
+  ['2005 ENGINE ELECTRICAL','engine'],
+  ['2005 ENGINE EXHAUST','engine'],
+  ['2005 FRONT SUSPENSION','chassis'],
+  ['2005 REAR DRIVE AXLE','driveline'],
+  ['2005 REAR SUSPENSION','chassis'],
+  ['2005 WHEEL DRIVE SHAFTS','driveline'],
+  ['2005 WIRING','electrical'],
+  ['2006 WIRING','electrical'],
+  ['5.7L ENGINE','engine'],
+  ['6.0 L ENGINE','engine'],
+  ['AIRBAGS','comfort'],
+  ['ANTILOCK BRAKES','chassis'],
+  ['AUTOMATIC TRANSMISSION OVERHAUL','driveline'],
+  ['CLUTCH','driveline'],
+  ['COMPUTER RELEARN','electrical'],
+  ['CRANKSHAFT POSITION SENSOR REPLACEMENT','engine'],
+  ['CRANKSHAFT POSITION SYSTEM VARIATION LEARN','engine'],
+  ['CRUISE CONTROL','electrical'],
+  ['DEFOGGER','electrical'],
+  ['DISC BRAKES','chassis'],
+  ['DOORS','body'],
+  ['DRIVE BELTS','engine'],
+  ['ELECTRICAL COMPONENT LOCATOR','electrical'],
+  ['EMISSION APPLICATIONS','engine'],
+  ['ENGINE COOLING','engine'],
+  ['ENGINE ELECTRICAL','engine'],
+  ['ENGINE EXHAUST','engine'],
+  ['ENTERTAINMENT','electrical'],
+  ['EXTERIOR TRIM','body'],
+  ['FRAME UNDERBODY','chassis'],
+  ['FRONT SUSPENSION','chassis'],
+  ['FUSES','electrical'],
+  ['GAGES','electrical'],
+  ['GENERIC TROUBLE CODES','codes'],
+  ['GM TROUBLE CODES','codes'],
+  ['HORNS','electrical'],
+  ['HVAC','comfort'],
+  ['HVAC 2','comfort'],
+  ['HYDRAULIC BRAKES','chassis'],
+  ['INTERIOR TRIM','body'],
+  ['KEY PROGRAMMING','electrical'],
+  ['KEYLESS ENTRY','electrical'],
+  ['LIGHTING SYSTEM','electrical'],
+  ['MAINTENANCE','service'],
+  ['MANUAL TRANSMISSION OVERHAUL','driveline'],
+  ['OIL SERVICE RESET','engine'],
+  ['PARKING BRAKE','chassis'],
+  ['PARKING BRAKE ADJUSTMENT','chassis'],
+  ['POWER STEERING','chassis'],
+  ['REAR DRIVE AXLE','driveline'],
+  ['REAR SUSPENSION','chassis'],
+  ['SEATS','comfort'],
+  ['SERVICE REMINDER LIGHTS','electrical'],
+  ['SHIFT LOCK CONTROL','driveline'],
+  ['STEERING COLUMN','chassis'],
+  ['UNIVERSAL JOINT','driveline'],
+  ['WHEEL DRIVE SHAFTS','driveline'],
+  ['WIRING','electrical']
+];
+
+// Mark Quitter Racing DIY resource pages (linked, not rehosted)
+const MQR='https://markquitterracing.com/';
+const RES={
+  manual:[MQR+'freeservicemanual/','Service Manual (free PDF)'],
+  torque:[MQR+'torque-specs/','Torque Specs'],
+  maint:[MQR+'maintenance-schedule/','Maintenance Schedule'],
+  obd:[MQR+'gm-obd-trouble-codes/','GM OBD Codes'],
+  obdgen:[MQR+'obd2-trouble-codes-generic/','Generic OBD2 Codes'],
+  radius:[MQR+'radiusrodbushings/','Radius Rod Bushings'],
+  subframe:[MQR+'subframeconnectors/','Subframe Connectors'],
+  diff:[MQR+'differentialfluid/','Differential Service'],
+  gear:[MQR+'3-90-gear-and-driveshaft-installed/','Gear & Driveshaft'],
+  cooling:[MQR+'cooling-system/','Cooling System'],
+  thermostat:[MQR+'thermostat/','Thermostat'],
+  hoses:[MQR+'radiator-hoses/','Radiator Hoses'],
+  plugs:[MQR+'spark-plugs/','Spark Plugs'],
+  wires:[MQR+'spark-plug-wires/','Spark Plug Wires'],
+  oil:[MQR+'oil-change/','Oil Change'],
+  catch:[MQR+'oil-catch-can/','Oil Catch Can'],
+  oilreset:[MQR+'resetserviceoillight/','Service Oil Reset'],
+  belts:[MQR+'2004-2006-gto-drive-belts/','Drive Belts'],
+  air:[MQR+'airfilter/','Air Filter'],
+  brakes:[MQR+'brakepads/','Brake Pads'],
+  pbrake:[MQR+'parking-brake/','Parking Brake'],
+  battery:[MQR+'choosing-the-right-car-battery/','Battery Guide'],
+  bcm:[MQR+'bcm-wiring-harness-repair/','BCM Wiring Repair'],
+  key:[MQR+'keyprogramming/','Key Programming'],
+  cluster:[MQR+'2004-06-gto-turnonshiftlight/','Cluster Programming'],
+  radio:[MQR+'2004-2006-gto-factory-radio-code/','Factory Radio Code'],
+  secret:[MQR+'secret-menu/','Secret Menu'],
+  wheels:[MQR+'wheels-tires-part-1/','Wheels & Tires'],
+  jacking:[MQR+'jackingpoints/','Jacking Points'],
+  qa:[MQR+'service-garage-qa/','Service Q&A']
+};
+
+// symptom keyword -> {systems:[...], note, res:[resource keys], man:[manual section names]}
+const DIAG=[
+  {kw:['rear','clunk','bump','irs','axle','half shaft','halfshaft','cradle','diff clunk'],
+   systems:['Rear suspension / IRS','Differential mount','Half-shaft splines'],
+   res:['radius','subframe','diff','torque'],
+   man:['REAR SUSPENSION','WHEEL DRIVE SHAFTS','REAR DRIVE AXLE'],
+   note:'On the 04 GTO a rear clunk is very commonly the IRS — cradle/radius-rod bushings or half-shaft splines — not the diff internals. Inspect bushings and shaft engagement before tearing into the diff.'},
+  {kw:['fuel','tank','slosh','clunk accel','gas','smell fuel','sending'],
+   systems:['Fuel tank straps / pad','Fuel sending unit'],
+   res:['manual','qa'],
+   man:['MAINTENANCE','5.7L ENGINE'],
+   note:'The 2004 fuel tank slosh/clunk is a known issue — revised straps and a tank pad were the typical fix. Worth checking before chasing driveline noise.'},
+  {kw:['misfire','rough idle','stumble','plug','coil','p0300','p030','spark'],
+   systems:['Ignition coils (8 coil-near-plug)','Spark plugs / wires','Fuel injectors'],
+   res:['plugs','wires','obd','torque'],
+   man:['ENGINE ELECTRICAL','5.7L ENGINE','GM TROUBLE CODES'],
+   note:'LS1 misfires usually trace to a coil, plug, or injector on the affected cylinder. A scan code like P0301-P0308 names the exact cylinder; swap suspect coil to another cylinder to see if the misfire follows.'},
+  {kw:['overheat','coolant','temp','hot','fan','thermostat','dexcool','radiator'],
+   systems:['Cooling system','Thermostat','Cooling fans'],
+   res:['cooling','thermostat','hoses','torque'],
+   man:['ENGINE COOLING','5.7L ENGINE'],
+   note:'LS1 runs DEX-COOL; confirm level and check for the classic intake-area seepage. Verify fan operation and thermostat before assuming head/gasket.'},
+  {kw:['oil','leak','consumption','burning','pcv','rear main','valve cover'],
+   systems:['PCV system','Valve cover gaskets','Rear main seal'],
+   res:['oil','catch','oilreset','torque'],
+   man:['5.7L ENGINE','MAINTENANCE'],
+   note:'LS1 oil use often ties to PCV behavior; common leak points are valve covers and the rear main. An oil catch can is a common fix; an oil analysis flags wear early.'},
+  {kw:['shift','slip','trans','4l60','gear','flare','converter','harsh'],
+   systems:['Transmission (4L60E / T56)','Trans fluid & filter','Shift solenoids'],
+   res:['manual','torque'],
+   man:['AUTOMATIC TRANSMISSION OVERHAUL','MANUAL TRANSMISSION OVERHAUL','SHIFT LOCK CONTROL'],
+   note:'For the 4L60E, check fluid level/condition first; harsh or flaring shifts can be solenoid or pressure related. For the T56, notchy shifts are often fluid or synchro related.'},
+  {kw:['brake','squeal','pedal','abs','grind','rotor','pad','soft'],
+   systems:['Brakes (pads/rotors)','Brake hydraulics','ABS'],
+   res:['brakes','pbrake','torque'],
+   man:['DISC BRAKES','HYDRAULIC BRAKES','ANTILOCK BRAKES'],
+   note:'Confirm pad thickness and rotor condition; a soft pedal points to air/fluid or a hydraulic leak.'},
+  {kw:['clutch','t56','slip clutch','pedal clutch','launch'],
+   systems:['Clutch & hydraulics','Clutch master/slave'],
+   res:['manual','torque'],
+   man:['CLUTCH','MANUAL TRANSMISSION OVERHAUL'],
+   note:'A slipping T56 clutch under power is a wear/upgrade item; a sinking pedal points to the master/slave hydraulics.'},
+  {kw:['no start','crank','battery','starter','security','passlock','dead'],
+   systems:['Battery (under hood)','Starter','Security / Passlock'],
+   res:['battery','key','bcm'],
+   man:['ENGINE ELECTRICAL','KEY PROGRAMMING','COMPUTER RELEARN'],
+   note:'A crank-no-start with a security light can be Passlock/key related; a no-crank points to battery, connections, or starter. (Battery is under the hood on the US 2004 GTO.)'},
+  {kw:['ac','a/c','heat','hvac','blower','vent','climate'],
+   systems:['HVAC / A/C','Blower & controls'],
+   res:['manual'],
+   man:['HVAC','HVAC 2'],
+   note:'Check refrigerant charge and blower operation; controls are conventional GM of the era.'},
+  {kw:['vibration','shake','wheel','balance','driveline','tire'],
+   systems:['Wheels / tire balance','Driveshaft','IRS'],
+   res:['wheels','gear','radius'],
+   man:['WHEEL DRIVE SHAFTS','UNIVERSAL JOINT','REAR SUSPENSION'],
+   note:'Speed-dependent vibration is often tire/balance; a driveline vibration that changes with throttle points to the driveshaft or IRS.'},
+  {kw:['tach','gauge','cluster','speedo','light','bulb','radio','key'],
+   systems:['Instrument cluster','Lighting','Radio / keys'],
+   res:['cluster','radio','key','secret'],
+   man:['GAGES','LIGHTING SYSTEM','ENTERTAINMENT','KEY PROGRAMMING'],
+   note:'Cluster/radio quirks on the imported Monaro-based GTO are common; the cluster, radio-code, and key-programming guides cover the usual procedures.'}
+];
+function matchSystems(text){
+  const t=text.toLowerCase(); const hits=[]; const rkeys=[]; const mans=[]; let note='';
+  DIAG.forEach(d=>{ if(d.kw.some(k=>t.includes(k))){
+    d.systems.forEach(s=>{if(!hits.includes(s))hits.push(s);});
+    (d.res||[]).forEach(r=>{if(!rkeys.includes(r))rkeys.push(r);});
+    (d.man||[]).forEach(mm=>{if(!mans.includes(mm))mans.push(mm);});
+    if(d.note&&!note)note=d.note; } });
+  if(!hits.length){['General LS1 systems','Check scan codes first'].forEach(s=>hits.push(s));rkeys.push('manual','obd','torque');mans.push('MAINTENANCE','GM TROUBLE CODES');}
+  return {systems:hits.slice(0,5),res:rkeys.slice(0,5),man:mans.slice(0,4),note};
+}
+
+/* ---------- storage ---------- */
+function load(){try{const r=JSON.parse(localStorage.getItem(K));return r?{...blank,...r}:structuredClone(blank);}catch(e){return structuredClone(blank);}}
+function save(){localStorage.setItem(K,JSON.stringify(db));}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const num=s=>{const n=parseFloat(String(s).replace(/[^0-9.]/g,''));return isNaN(n)?0:n;};
+const fmtN=n=>n?Math.round(n).toLocaleString():'';
+const money=n=>'$'+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById(b.dataset.tab).classList.add('active'); b.classList.add('active');
+}));
+const odo=document.getElementById('odo');
+odo.addEventListener('input',()=>{db.odo=num(odo.value);save();renderAll();});
+odo.addEventListener('blur',()=>{if(db.odo)odo.value=fmtN(num(db.odo));});
+
+document.getElementById('l-date').value=today();
+document.getElementById('l-add').addEventListener('click',()=>{
+  const item=document.getElementById('l-item').value.trim();
+  if(!item){document.getElementById('l-item').focus();return;}
+  db.log.push({id:uid(),date:document.getElementById('l-date').value||today(),
+    miles:num(document.getElementById('l-miles').value),item,
+    cost:num(document.getElementById('l-cost').value),notes:document.getElementById('l-notes').value.trim()});
+  ['l-item','l-miles','l-cost','l-notes'].forEach(id=>document.getElementById(id).value='');
+  save();renderAll();
+});
+function renderLog(){
+  const b=document.getElementById('log-body');
+  const rows=[...db.log].sort((a,c)=>(c.date||'').localeCompare(a.date||''));
+  b.innerHTML=rows.length?rows.map(r=>'<tr><td>'+esc(r.date)+'</td><td>'+esc(r.item)+
+    (r.notes?'<div style="color:var(--muted);font-size:.75rem">'+esc(r.notes)+'</div>':'')+
+    '</td><td class="num">'+(fmtN(r.miles)||'&mdash;')+'</td><td class="num">'+(r.cost?money(r.cost):'&mdash;')+
+    '</td><td><span class="x" data-del="log" data-id="'+r.id+'">&times;</span></td></tr>').join('')
+    :'<tr><td colspan="5" class="empty">No service logged yet. Add your first record above.</td></tr>';
+}
+document.getElementById('m-date').value=today();
+document.getElementById('m-add').addEventListener('click',()=>{
+  const name=document.getElementById('m-name').value.trim();
+  if(!name){document.getElementById('m-name').focus();return;}
+  db.mods.push({id:uid(),date:document.getElementById('m-date').value||today(),name,
+    part:document.getElementById('m-part').value.trim(),cost:num(document.getElementById('m-cost').value)});
+  ['m-name','m-part','m-cost'].forEach(id=>document.getElementById(id).value='');
+  save();renderAll();
+});
+document.getElementById('m-seed').addEventListener('click',()=>{
+  const cat=[['LS6 intake manifold',''],['Cold air intake',''],['Long-tube headers',''],
+    ['High-flow cats',''],['Cat-back exhaust',''],['Ported throttle body',''],
+    ['Handheld tuner',''],['Lowering springs',''],['Upgraded clutch (T56)',''],['Aftermarket radiator','']];
+  cat.forEach(([name,part])=>{if(!db.mods.some(m=>m.name===name))db.mods.push({id:uid(),date:'',name,part,cost:0});});
+  save();renderAll();
+});
+function renderMods(){
+  const b=document.getElementById('mods-body');
+  const rows=[...db.mods].sort((a,c)=>(c.date||'').localeCompare(a.date||''));
+  b.innerHTML=rows.length?rows.map(r=>'<tr><td>'+(esc(r.date)||'&mdash;')+'</td><td>'+esc(r.name)+
+    '</td><td>'+(esc(r.part)||'&mdash;')+'</td><td class="num">'+(r.cost?money(r.cost):'&mdash;')+
+    '</td><td><span class="x" data-del="mods" data-id="'+r.id+'">&times;</span></td></tr>').join('')
+    :'<tr><td colspan="5" class="empty">No mods logged. Track your build above, or load the menu.</td></tr>';
+}
+document.getElementById('i-add').addEventListener('click',()=>{
+  const name=document.getElementById('i-name').value.trim();
+  const every=num(document.getElementById('i-every').value);
+  if(!name||!every){document.getElementById('i-name').focus();return;}
+  db.intervals.push({id:uid(),name,every,last:num(document.getElementById('i-last').value)});
+  ['i-name','i-every','i-last'].forEach(id=>document.getElementById(id).value='');
+  save();renderAll();
+});
+document.getElementById('i-seed').addEventListener('click',()=>{
+  const defs=[['Engine oil & filter',3000],['Tire rotation',7500],['Engine air filter',30000],
+    ['Trans fluid (auto)',50000],['Rear diff fluid',50000],['Coolant (DEX-COOL)',100000],
+    ['Spark plugs',100000],['Brake fluid',45000],['Serpentine belt',90000]];
+  defs.forEach(([name,every])=>{if(!db.intervals.some(i=>i.name.toLowerCase()===name.toLowerCase()))
+    db.intervals.push({id:uid(),name,every,last:0});});
+  save();renderAll();
+});
+function lastDoneFor(iv){
+  if(iv.last) return iv.last;
+  const key=iv.name.toLowerCase().split(/[ /]/)[0];
+  const hits=db.log.filter(r=>r.item.toLowerCase().includes(key)&&r.miles).sort((a,c)=>c.miles-a.miles);
+  return hits.length?hits[0].miles:0;
+}
+function intervalStatus(iv){
+  const cur=num(db.odo), last=lastDoneFor(iv);
+  if(!cur) return {cls:'',label:'Set odometer',pct:0,detail:'Every '+fmtN(iv.every)+' mi'};
+  const since=Math.max(0,cur-last), remain=iv.every-since, pct=Math.min(100,Math.round(since/iv.every*100));
+  let cls='ok',label='OK';
+  if(remain<=0){cls='bad';label='Overdue';} else if(remain<=iv.every*0.15){cls='warn';label='Due soon';}
+  const detail=last?fmtN(since)+' mi since last &middot; '+(remain<=0?fmtN(-remain)+' mi over':fmtN(remain)+' mi left')
+    :'No log entry yet &middot; every '+fmtN(iv.every)+' mi';
+  return {cls,label,pct,detail};
+}
+const barColor=c=>c==='bad'?'var(--bad)':c==='warn'?'var(--warn)':'var(--ok)';
+function renderIntervals(){
+  const c=document.getElementById('int-cards');
+  if(!db.intervals.length){c.innerHTML='<div class="empty">No intervals set. Tap "Load GTO defaults" to start.</div>';return;}
+  c.innerHTML=db.intervals.map(iv=>{const s=intervalStatus(iv);
+    return '<div class="card '+s.cls+'"><div class="top"><span class="name">'+esc(iv.name)+'</span>'+
+      '<span class="status '+s.cls+'">'+s.label+'</span></div><div class="meta">'+s.detail+'</div>'+
+      '<div class="bar"><i style="width:'+s.pct+'%;background:'+barColor(s.cls)+'"></i></div>'+
+      '<div style="text-align:right;margin-top:8px"><span class="x" data-del="intervals" data-id="'+iv.id+'">remove</span></div></div>';}).join('');
+}
+function renderDash(){
+  const spend=db.log.reduce((a,r)=>a+r.cost,0)+db.mods.reduce((a,r)=>a+r.cost,0);
+  document.getElementById('s-spend').textContent=money(spend).replace('.00','');
+  document.getElementById('s-records').textContent=db.log.length;
+  const flagged=db.intervals.map(intervalStatus).filter(s=>s.cls==='bad'||s.cls==='warn');
+  document.getElementById('s-due').textContent=flagged.length;
+  const dueCount=db.intervals.map(intervalStatus).filter(s=>s.cls==='bad').length;
+  document.querySelector('.nav-btn[data-tab="dash"]').innerHTML='Dashboard'+(dueCount?' <span class="pip">'+dueCount+'</span>':'');
+  const c=document.getElementById('dash-cards');
+  if(!db.intervals.length){c.innerHTML='<div class="empty">Add service intervals to see maintenance health here.</div>';return;}
+  const order={bad:0,warn:1,ok:2,'':3};
+  const ranked=db.intervals.map(iv=>({iv,s:intervalStatus(iv)})).sort((a,b)=>order[a.s.cls]-order[b.s.cls]);
+  c.innerHTML=ranked.map(o=>'<div class="card '+o.s.cls+'"><div class="top">'+
+    '<span class="name">'+esc(o.iv.name)+'</span><span class="status '+o.s.cls+'">'+o.s.label+'</span></div>'+
+    '<div class="meta">'+o.s.detail+'</div><div class="bar"><i style="width:'+o.s.pct+'%;background:'+barColor(o.s.cls)+'"></i></div></div>').join('');
+}
+function renderRef(){
+  document.getElementById('spec-list').innerHTML=SPECS.map(p=>'<div class="spec-row"><span class="k">'+esc(p[0])+'</span><span class="v">'+esc(p[1])+'</span></div>').join('');
+  document.getElementById('fluid-list').innerHTML=FLUIDS.map(p=>'<div class="spec-row"><span class="k">'+esc(p[0])+'</span><span class="v">'+esc(p[1])+'</span></div>').join('');
+  document.getElementById('parts-list').innerHTML=PARTS.map(p=>'<div class="spec-row"><span class="k">'+esc(p[0])+'</span><span class="v">'+esc(p[1])+'</span></div>').join('');
+  document.getElementById('quirk-list').innerHTML=QUIRKS.map(q=>'<div class="tipbox"><b>'+esc(q[0])+'</b><br>'+esc(q[1])+'</div>').join('');
+  renderResList('');
+  renderManList('');
+}
+function renderResList(q){
+  q=(q||'').toLowerCase();
+  const entries=Object.values(RES).filter(r=>!q||r[1].toLowerCase().includes(q));
+  const el=document.getElementById('res-list');
+  el.innerHTML=entries.length?entries.map(r=>'<a href="'+r[0]+'" target="_blank" rel="noopener">'+esc(r[1])+' <span class="tag">MQR ↗</span></a>').join('')
+    :'<div class="empty">No guide matches "'+esc(q)+'".</div>';
+}
+function renderManList(q){
+  q=(q||'').toLowerCase();
+  const list=MANSECTIONS.filter(m=>!q||m[0].toLowerCase().includes(q)||m[1].includes(q));
+  const el=document.getElementById('man-list');
+  el.innerHTML=list.length?list.map(m=>'<div class="pdf-list"><a href="https://markquitterracing.com/freeservicemanual/" target="_blank" rel="noopener">'+esc(m[0])+' <span class="tag">'+esc(m[1])+'</span></a></div>').join('')
+    :'<div class="empty">No section matches "'+esc(q)+'".</div>';
+}
+document.getElementById('res-q').addEventListener('input',e=>renderResList(e.target.value));
+document.getElementById('man-q').addEventListener('input',e=>renderManList(e.target.value));
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-del]'); if(!t)return;
+  const k=t.dataset.del; db[k]=db[k].filter(x=>x.id!==t.dataset.id); save();renderAll();
+});
+document.getElementById('export').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gto-garageos-backup.json';a.click();
+});
+document.getElementById('import').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{db={...blank,...JSON.parse(rd.result)};save();odo.value=db.odo?fmtN(num(db.odo)):'';renderAll();}
+    catch(err){alert('That file could not be read as a GarageOS backup.');}};rd.readAsText(f);
+});
+document.getElementById('wipe').addEventListener('click',()=>{
+  if(confirm('Erase all vehicle data on this device? This cannot be undone.')){db=structuredClone(blank);save();odo.value='';renderAll();}
+});
+
+/* ---------- diagnostics ---------- */
+const CHIPS=['Rear clunk over bumps','Misfire / rough idle','Running hot','Fuel tank clunk','No start','Harsh shifting'];
+const chatBox=document.getElementById('chatBox'), issueInput=document.getElementById('issueInput');
+document.getElementById('chips').innerHTML=CHIPS.map(c=>'<span class="chip">'+c+'</span>').join('');
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{issueInput.value=c.textContent;analyze();}));
+function pushMsg(who,cls,html){
+  const d=document.createElement('div');d.className='msg '+cls;
+  d.innerHTML='<div class="who">'+who+'</div><div class="bubble">'+html+'</div>';
+  chatBox.appendChild(d);chatBox.scrollTop=chatBox.scrollHeight;return d;
+}
+function systemBar(systems,reskeys,mans){
+  const items=systems.map(s=>'<span class="src">'+esc(s)+'</span>').join('');
+  let html='<div class="srcbar"><div class="lbl">Systems to check</div>'+items+'</div>';
+  if(mans&&mans.length){
+    const secs=mans.map(s=>'<span class="src" style="border-color:var(--accent);color:var(--metal)">📖 '+esc(s)+'</span>').join('');
+    html+='<div class="srcbar"><div class="lbl">Factory manual sections to read</div>'+secs+'</div>';
+  }
+  if(reskeys&&reskeys.length){
+    const links=reskeys.map(k=>RES[k]?'<a class="src" href="'+RES[k][0]+'" target="_blank" rel="noopener">'+esc(RES[k][1])+' ↗</a>':'').join('');
+    html+='<div class="srcbar"><div class="lbl">DIY guides &amp; the manual download — Mark Quitter Racing</div>'+links+'</div>';
+  }
+  return html;
+}
+async function analyze(){
+  const q=issueInput.value.trim(); if(!q)return;
+  pushMsg('You','user',esc(q)); issueInput.value='';
+  const m=matchSystems(q);
+  const loading=pushMsg('GarageOS','ai','<i style="color:var(--muted)">Working through it…</i>');
+  const sys="You are a diagnostic assistant for a 2004 Pontiac GTO with the 5.7L LS1 V8, T56 6-speed or 4L60E auto, Holden Monaro-based IRS. "
+   +"Give concise triage: 2-4 likely causes ordered by probability, the fastest check to isolate each, and any relevant fluid/spec note. "
+   +"NEVER invent torque specs — tell the user which value to confirm in the GTO service manual. Reply in simple HTML (<b>, <br>, &bull; bullets). "
+   +"Known facts you may cite: 350hp/365tq LS1; firing order 1-8-7-2-6-5-4-3; battery is under the hood on the US 2004 GTO; 2004 fuel-tank slosh/clunk is a known issue; "
+   +"rear clunks are often IRS (cradle/radius-rod bushings, half-shaft splines) not diff internals; uses DEX-COOL and 5W-30. "
+   +"The user will also see these systems flagged: "+m.systems.join(', ')+", plus links to Mark Quitter Racing DIY guides.";
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:[{role:'user',content:q}]})});
+    if(!res.ok) throw new Error('http '+res.status);
+    const data=await res.json();
+    const text=(data.content||[]).map(b=>b.type==='text'?b.text:'').join('').trim();
+    loading.remove();
+    pushMsg('GarageOS','ai',(text||'No response generated.')
+      +(m.note?'<br><br><span style="color:var(--muted)"><b>Note:</b> '+m.note+'</span>':'')+systemBar(m.systems,m.res,m.man));
+  }catch(err){
+    loading.remove();
+    pushMsg('GarageOS','ai',
+      '<b>Here are the systems to check for that symptom.</b><br>'
+      +'Live AI triage is sandboxed in this preview — host the file to enable it. The reasoning below works either way.'
+      +(m.note?'<br><br><span style="color:var(--muted)"><b>Note:</b> '+m.note+'</span>':'')+systemBar(m.systems,m.res,m.man));
+  }
+}
+document.getElementById('scan').addEventListener('click',analyze);
+issueInput.addEventListener('keypress',e=>{if(e.key==='Enter')analyze();});
+
+/* ---------- scanner reports (generic parser) ---------- */
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+function dtcSystem(code){
+  const L=code[0].toUpperCase();
+  return L==='P'?'Powertrain':L==='C'?'Chassis':L==='U'?'Network/Bus':'Body';
+}
+function parseScan(text){
+  const grab=(re)=>{const m=text.match(re);return m?m[1].trim():null;};
+  const vin=grab(/VIN[:：]?\s*([A-HJ-NPR-Z0-9]{17})/i);
+  const date=grab(/(\d{4}-\d{2}-\d{2})/) || today();
+  const lines=text.split('\n');
+  const codeRe=/\b([PBCU][0-9][0-9A-F]{3})\b/;
+  const occ={};
+  for(let i=0;i<lines.length;i++){
+    const m=lines[i].match(codeRe); if(!m) continue;
+    const code=m[1];
+    let rest=lines[i].slice(lines[i].indexOf(code)+code.length).trim();
+    if(!rest && lines[i+1]) rest=lines[i+1].trim();
+    rest=rest.replace(/DTC status.*$/i,'').replace(/DTC Last test.*$/i,'').replace(/status[:：].*$/i,'').replace(/\s+/g,' ').trim();
+    const status=/current|confirmed|present|active/i.test((lines[i]+' '+(lines[i+1]||'')))?'Current':'History';
+    if(!occ[code]) occ[code]={count:0,desc:rest||'',status};
+    occ[code].count++;
+    if(rest && rest.length>occ[code].desc.length) occ[code].desc=rest;
+    if(status==='Current') occ[code].status='Current';
+  }
+  const codes=Object.keys(occ).sort().map(c=>({code:c,desc:occ[c].desc,count:occ[c].count,status:occ[c].status,sys:dtcSystem(c)}));
+  return {vin,date,codes,totalOcc:codes.reduce((a,c)=>a+c.count,0)};
+}
+const scanPick=document.getElementById('scanPick'), scanFile=document.getElementById('scanFile');
+scanPick.addEventListener('click',()=>scanFile.click());
+scanFile.addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const status=document.getElementById('scanStatus');
+  status.textContent='Reading '+f.name+'…';
+  try{
+    let text='';
+    if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
+      if(!window.pdfjsLib){status.textContent='PDF engine still loading — try again in a moment.';return;}
+      const buf=await f.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      for(let p=1;p<=pdf.numPages;p++){const pg=await pdf.getPage(p);const c=await pg.getTextContent();text+=c.items.map(it=>it.str).join('\n')+'\n';}
+    } else {
+      text=await f.text();
+    }
+    const parsed=parseScan(text);
+    if(!parsed.codes.length){status.textContent='No trouble codes found in that file. If your scanner exported it differently, let me know and I can adapt the reader.';return;}
+    const rec={id:uid(),date:parsed.date,vin:parsed.vin,codes:parsed.codes,totalOcc:parsed.totalOcc,file:f.name};
+    db.scans.unshift(rec); save(); status.textContent=''; showScan(rec); renderScanHistory();
+  }catch(err){status.textContent='Could not read that file ('+err.message+').';}
+  scanFile.value='';
+});
+function showScan(rec){
+  const el=document.getElementById('scanResult');
+  const codeRows=rec.codes.map(c=>'<tr><td><b>'+esc(c.code)+'</b></td><td>'+esc(c.desc||'—')+'</td><td>'+esc(c.sys)+'</td><td>'+esc(c.status)+'</td><td class="num">'+c.count+(c.count>1?'×':'')+'</td></tr>').join('');
+  el.innerHTML='<div class="card" style="border-left-color:var(--accent)"><div class="top">'
+    +'<span class="name">Scan '+esc(rec.date||'')+'</span><span class="status" style="color:var(--muted)">'+esc(rec.file||'')+'</span></div>'
+    +'<div class="meta">'+(rec.vin?('VIN '+esc(rec.vin)+' &middot; '):'')+rec.codes.length+' unique codes ('+rec.totalOcc+' rows)</div></div>'
+    +'<h4>Codes ('+rec.codes.length+')</h4>'
+    +'<div class="table-wrapper"><table><thead><tr><th>DTC</th><th>Description</th><th>System</th><th>Status</th><th class="num">Seen</th></tr></thead><tbody>'+codeRows+'</tbody></table></div>'
+    +'<div style="margin-top:12px"><button class="btn" id="diagCodes">Diagnose these codes</button> <button class="btn ghost" id="logCodes">Log to service history</button></div>';
+  document.getElementById('diagCodes').addEventListener('click',()=>diagnoseCodes(rec));
+  document.getElementById('logCodes').addEventListener('click',()=>logScanToService(rec));
+}
+function diagnoseCodes(rec){
+  document.querySelector('.nav-btn[data-tab="ai"]').click();
+  pushMsg('You','user','Diagnose scan from '+esc(rec.date||'')+' — '+rec.codes.length+' codes');
+  const allHist=rec.codes.every(c=>c.status==='History');
+  const list=rec.codes.map(c=>'&bull; <b>'+esc(c.code)+'</b> — '+esc(c.desc||'(no description)')+' <span style="color:var(--muted)">['+esc(c.status)+']</span>').join('<br>');
+  const histNote=allHist?'All codes are <b>History</b> (stored, not active). Clear them and re-scan after driving to see which return — only returning codes need chasing.'
+    :'Some codes are Current/active — prioritize those.';
+  const sys=[...new Set(rec.codes.map(c=>c.sys))];
+  pushMsg('GarageOS','ai','<b>Scan triage — '+rec.codes.length+' codes</b><br>'+list
+    +'<br><br><span style="color:var(--muted)">'+histNote+'</span>'
+    +'<br><br><span style="color:var(--muted)">For LS1 misfire codes (P0301–P0308) the last digit is the cylinder; swap the suspect coil to a different cylinder and re-scan to see if the misfire follows the coil.</span>'
+    +systemBar(sys,['obd','obdgen','manual','torque'],['GM TROUBLE CODES','GENERIC TROUBLE CODES','ENGINE ELECTRICAL']));
+}
+function logScanToService(rec){
+  if(rec.loggedId && db.log.some(r=>r.id===rec.loggedId)){if(!confirm('This scan is already logged. Add another entry?'))return;}
+  const action=rec.codes.every(c=>c.status==='History')?'Scanned & cleared '+rec.codes.length+' codes':'Scanned — '+rec.codes.length+' codes ('+rec.codes.filter(c=>c.status==='Current').length+' active)';
+  const entry={id:uid(),date:rec.date||today(),miles:num(db.odo),item:action,cost:0,notes:'OBD scan · '+rec.codes.map(c=>c.code).join(', ')};
+  db.log.push(entry); rec.loggedId=entry.id; save(); renderAll();
+  document.querySelector('.nav-btn[data-tab="log"]').click();
+}
+function renderScanHistory(){
+  const head=document.getElementById('scanHistHead'), c=document.getElementById('scan-history');
+  if(!db.scans.length){head.style.display='none';c.innerHTML='';return;}
+  head.style.display='';
+  c.innerHTML=db.scans.map(s=>{const logged=s.loggedId&&db.log.some(r=>r.id===s.loggedId);
+    return '<div class="card"><div class="top"><span class="name">'+esc(s.date||'')+' &middot; '+s.codes.length+' codes'
+    +(logged?' <span style="color:var(--ok);font-size:.7rem">✓ logged</span>':'')+'</span>'
+    +'<span class="x" data-del="scans" data-id="'+s.id+'">remove</span></div>'
+    +'<div class="meta">'+esc(s.file||'')+'</div>'
+    +'<div style="margin-top:8px"><button class="btn sm ghost" data-view="'+s.id+'">View</button> '
+    +'<button class="btn sm ghost" data-diag="'+s.id+'">Diagnose</button> '
+    +'<button class="btn sm" data-log="'+s.id+'">'+(logged?'Log again':'Log to service')+'</button></div></div>';}).join('');
+  c.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{const s=db.scans.find(x=>x.id===b.dataset.view);if(s)showScan(s);}));
+  c.querySelectorAll('[data-diag]').forEach(b=>b.addEventListener('click',()=>{const s=db.scans.find(x=>x.id===b.dataset.diag);if(s)diagnoseCodes(s);}));
+  c.querySelectorAll('[data-log]').forEach(b=>b.addEventListener('click',()=>{const s=db.scans.find(x=>x.id===b.dataset.log);if(s)logScanToService(s);}));
+}
+
+/* ---------- HP Tuners CSV log analyzer ---------- */
+// fuzzy channel matchers: label -> {match fn, unit, flags}
+const CHANNELS=[
+  {key:'rpm', name:'Engine RPM', unit:'rpm', re:/\b(rpm|engine speed)\b/i},
+  {key:'ect', name:'Coolant Temp', unit:'°', re:/(coolant|ect|engine temp)/i},
+  {key:'iat', name:'Intake Air Temp', unit:'°', re:/(iat|intake air)/i},
+  {key:'map', name:'MAP', unit:'kPa', re:/\bmap\b|manifold abs/i},
+  {key:'maf', name:'MAF', unit:'g/s', re:/\bmaf\b|mass air/i},
+  {key:'tps', name:'Throttle', unit:'%', re:/(tps|throttle)/i},
+  {key:'spark', name:'Spark Advance', unit:'°', re:/(spark adv|timing adv|ignition timing|spark advance)/i},
+  {key:'knock', name:'Knock Retard', unit:'°', re:/(knock retard|kr\b|retard)/i},
+  {key:'afr', name:'Air/Fuel (AFR)', unit:'', re:/(afr|air.?fuel|wideband|wb afr|lambda)/i},
+  {key:'stft', name:'Short Fuel Trim', unit:'%', re:/(short.*trim|stft)/i},
+  {key:'ltft', name:'Long Fuel Trim', unit:'%', re:/(long.*trim|ltft)/i},
+  {key:'oilp', name:'Oil Pressure', unit:'psi', re:/(oil pres|oil psi)/i},
+  {key:'speed', name:'Vehicle Speed', unit:'mph', re:/(vehicle speed|vss|mph|km\/h)/i},
+  {key:'volts', name:'Battery Voltage', unit:'V', re:/(voltage|volts|battery v)/i}
+];
+function parseCSV(text){
+  // tolerate VCM Scanner preamble: find the header row (the one with the most commas containing a known channel word)
+  const rawLines=text.split(/\r?\n/).filter(l=>l.trim().length);
+  if(!rawLines.length) return null;
+  let headerIdx=0,best=-1;
+  for(let i=0;i<Math.min(rawLines.length,15);i++){
+    const cols=rawLines[i].split(',');
+    if(cols.length<3) continue;
+    const score=cols.length + (/rpm|coolant|throttle|spark|knock|time/i.test(rawLines[i])?20:0);
+    if(score>best){best=score;headerIdx=i;}
+  }
+  const headers=rawLines[headerIdx].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const rows=[];
+  for(let i=headerIdx+1;i<rawLines.length;i++){
+    const cells=rawLines[i].split(',');
+    if(cells.length<headers.length-1) continue;
+    rows.push(cells);
+  }
+  // map detected channels to column indexes
+  const found={};
+  CHANNELS.forEach(ch=>{
+    const idx=headers.findIndex(h=>ch.re.test(h));
+    if(idx>=0 && !(ch.key in found)) found[ch.key]={idx,header:headers[idx],ch};
+  });
+  // extract numeric series
+  const series={};
+  Object.values(found).forEach(f=>{
+    const arr=rows.map(r=>parseFloat(String(r[f.idx]).replace(/[^0-9.\-]/g,''))).filter(v=>!isNaN(v));
+    if(arr.length) series[f.ch.key]={name:f.ch.name,unit:f.ch.unit,header:f.header,
+      values:arr,min:Math.min(...arr),max:Math.max(...arr),
+      avg:arr.reduce((a,b)=>a+b,0)/arr.length};
+  });
+  return {headers,rowCount:rows.length,series};
+}
+function spark(values,color){
+  if(values.length<2) return '';
+  const w=260,h=40,n=values.length,mn=Math.min(...values),mx=Math.max(...values),rng=(mx-mn)||1;
+  const step=w/(n-1);
+  let d='';
+  for(let i=0;i<n;i++){const x=i*step;const y=h-((values[i]-mn)/rng)*h;d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';}
+  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="width:100%;height:40px">'
+    +'<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.5"/></svg>';
+}
+function analyzeLog(parsed){
+  const s=parsed.series; const flags=[];
+  if(s.knock && s.knock.max>=2) flags.push(['bad','Knock retard up to '+s.knock.max.toFixed(1)+'° — the ECU pulled timing. Check for low octane, heat soak, or a too-aggressive tune.']);
+  else if(s.knock) flags.push(['ok','No significant knock retard (max '+s.knock.max.toFixed(1)+'°).']);
+  if(s.ect && s.ect.max>=230) flags.push(['bad','Coolant peaked at '+s.ect.max.toFixed(0)+'° — running hot. Check cooling system, fans, thermostat.']);
+  else if(s.ect && s.ect.max>=215) flags.push(['warn','Coolant reached '+s.ect.max.toFixed(0)+'° — on the warm side; keep an eye on it.']);
+  else if(s.ect) flags.push(['ok','Coolant max '+s.ect.max.toFixed(0)+'° — in range.']);
+  if(s.afr){
+    if(s.afr.max>=15.5) flags.push(['warn','AFR went lean (up to '+s.afr.max.toFixed(1)+':1). Lean under load is worth investigating — fuel delivery or a leak.']);
+    if(s.afr.min<=10.5) flags.push(['warn','AFR went rich (down to '+s.afr.min.toFixed(1)+':1).']);
+    if(s.afr.max<15.5 && s.afr.min>10.5) flags.push(['ok','AFR stayed in a reasonable band ('+s.afr.min.toFixed(1)+'–'+s.afr.max.toFixed(1)+').']);
+  }
+  if(s.volts && s.volts.min<12) flags.push(['warn','Battery voltage dipped to '+s.volts.min.toFixed(1)+'V — charging system worth a look.']);
+  if(s.oilp && s.oilp.min<10 && s.oilp.min>0) flags.push(['bad','Oil pressure dropped to '+s.oilp.min.toFixed(0)+' psi — verify; low oil pressure is serious.']);
+  if(!flags.length) flags.push(['ok','Log parsed. No flagged thresholds among the channels detected.']);
+  return flags;
+}
+const logPick=document.getElementById('logPick'), logFile=document.getElementById('logFile');
+logPick.addEventListener('click',()=>logFile.click());
+logFile.addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const status=document.getElementById('logStatus');
+  if(/\.hpl$/i.test(f.name)){status.innerHTML='That\'s a raw <b>.hpl</b> file — open it in VCM Scanner and export to CSV first, then upload the CSV.';return;}
+  status.textContent='Reading '+f.name+'…';
+  try{
+    const text=await f.text();
+    const parsed=parseCSV(text);
+    if(!parsed||!Object.keys(parsed.series).length){
+      status.innerHTML='Couldn\'t find recognizable channels. Make sure it\'s a CSV export with a header row. If the column names are unusual, send me one and I\'ll teach it your names.';return;}
+    status.textContent='';
+    showLog(parsed,f.name);
+  }catch(err){status.textContent='Could not read that file ('+err.message+').';}
+  logFile.value='';
+});
+function showLog(parsed,fname){
+  const s=parsed.series; const flags=analyzeLog(parsed);
+  const colors={knock:'#c0445c',ect:'#cf9a2f',afr:'#5aa66f',rpm:'#a87ce8',spark:'#a87ce8',tps:'#8a5cd0'};
+  const order=['rpm','tps','spark','knock','ect','iat','afr','map','maf','stft','ltft','oilp','volts','speed'];
+  const present=order.filter(k=>s[k]);
+  const cards=present.map(k=>{const d=s[k];
+    return '<div class="card"><div class="top"><span class="name">'+esc(d.name)+'</span>'
+      +'<span class="status" style="color:var(--accent-hi)">'+d.min.toFixed(1)+' / '+d.avg.toFixed(1)+' / '+d.max.toFixed(1)+(d.unit?(' '+d.unit):'')+'</span></div>'
+      +'<div class="meta" style="font-size:.66rem">min / avg / max &middot; source: '+esc(d.header)+'</div>'
+      +spark(d.values,colors[k]||'#a87ce8')+'</div>';}).join('');
+  const flagCards=flags.map(f=>'<div class="card '+f[0]+'"><div class="meta" style="color:var(--text);font-size:.85rem">'+f[1]+'</div></div>').join('');
+  document.getElementById('logResult').innerHTML=
+    '<div class="card" style="border-left-color:var(--accent)"><div class="top"><span class="name">'+esc(fname)+'</span>'
+    +'<span class="status" style="color:var(--muted)">'+parsed.rowCount.toLocaleString()+' samples</span></div>'
+    +'<div class="meta">'+present.length+' channels detected</div></div>'
+    +'<h4>Flags</h4><div class="cards">'+flagCards+'</div>'
+    +'<h4>Channels</h4><div class="cards">'+cards+'</div>'
+    +'<p class="disclaimer">Charts are trend sparklines, not precision plots. Thresholds are general LS1 guidance, not a substitute for a tuner reviewing the full log.</p>';
+}
+
+function renderAll(){renderDash();renderLog();renderIntervals();renderMods();renderRef();renderScanHistory();}
+odo.value=db.odo?fmtN(num(db.odo)):'';
+renderAll();
+</script>
+</body>
+</html>
